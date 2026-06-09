@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Terra Trace - Carbon Footprint Tracking & AI Insights
 
-## Getting Started
+Terra Trace is a lightweight, zero-dependency, and highly accessible Next.js dashboard built to help you track your carbon footprint across four pillars (Transportation, Energy, Diet, Waste) and receive personalized, actionable AI insights.
 
-First, run the development server:
+## Methodology & Calculation
+The `src/utils/carbonEngine.ts` file houses the core conversion logic based on generalized baseline emission factors:
+- **Transportation**: Varies by vehicle type (e.g., Car: 0.192 kg CO2/km).
+- **Home Energy**: Estimated per kWh (0.233 kg CO2/kWh) and heating type.
+- **Diet & Waste**: Uses standard monthly average factors.
 
+## AI Action Planner (Groq Integration)
+The AI Insights are fetched via `src/app/api/insights/route.ts`. 
+
+To enable Groq integration:
+1. Obtain a [Groq API Key](https://console.groq.com/keys).
+2. Create a `.env.local` file at the root of the project:
+   ```env
+   GROQ_API_KEY=gsk_your_api_key_here
+   ```
+3. Implement the `groq-sdk` inside the `route.ts` API file to prompt the `llama3-8b-8192` model with the user's `carbonData` JSON payload. Request the model to return a JSON array of actionable items.
+
+## Accessibility (WCAG 2.1 AA)
+- High contrast "Terra Trace" theme palette (Deep Forest, Parchment, Sage).
+- Full ARIA compliance (`aria-label`, `aria-valuenow`, `role="progressbar"`) for dynamic charts.
+- Semantic HTML tags (`<main>`, `<section>`, `<aside>`) and explicit focus states for all interactive elements.
+
+## Running Locally & Deployment
+1. Install dependencies: `npm install`
+2. Run development server: `npm run dev`
+3. View at `http://localhost:3000`
+
+### Zero-Dependency Edge Deployment
+This application is strictly under 10MB by utilizing native Tailwind CSS and simple SVG-based rendering rather than heavy chart libraries. It is ready for one-click deployment on [Vercel](https://vercel.com) or [Render](https://render.com). Simply link your GitHub repository and add your `GROQ_API_KEY` to the environment variables.
+
+## Testing
+Run the mock validation script to verify the conversion maths:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx tsx src/utils/calculations.test.ts
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
