@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { FootprintProvider } from "../context/FootprintContext";
+import { CarbonProvider } from "../context/CarbonContext";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Terra Trace | Carbon Footprint Dashboard",
+  title: "EcoPulse | Carbon Footprint Tracker",
   description: "Track your carbon footprint and get personalized insights.",
 };
 
@@ -29,9 +29,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <FootprintProvider>
+        <CarbonProvider>
           {children}
-        </FootprintProvider>
+        </CarbonProvider>
       </body>
     </html>
   );

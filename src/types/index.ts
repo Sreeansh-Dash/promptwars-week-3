@@ -19,6 +19,18 @@ export interface ActionItem {
   completed: boolean;
 }
 
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  unlockedAt: string;
+}
+
+export interface FootprintHistory {
+  date: string; // ISO string
+  totalKg: number;
+}
+
 export interface GroqResponse {
   insights: Omit<ActionItem, 'completed' | 'id'>[];
 }

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoPulse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#2c3a4c",
+                        "on-primary-fixed": "#002113",
+                        "on-primary-fixed-variant": "#005236",
+                        "on-background": "#d4e4fa",
+                        "error-container": "#93000a",
+                        "on-primary-container": "#00422b",
+                        "surface-container-high": "#1c2b3c",
+                        "on-secondary": "#003731",
+                        "inverse-on-surface": "#233143",
+                        "on-error": "#690005",
+                        "surface-container": "#122131",
+                        "tertiary-fixed-dim": "#bec6e0",
+                        "on-surface-variant": "#bbcabf",
+                        "on-secondary-container": "#004d44",
+                        "surface-container-highest": "#273647",
+                        "on-tertiary-container": "#31394d",
+                        "inverse-surface": "#d4e4fa",
+                        "outline": "#86948a",
+                        "on-error-container": "#ffdad6",
+                        "tertiary": "#bec6e0",
+                        "outline-variant": "#3c4a42",
+                        "secondary": "#44e2cd",
+                        "tertiary-container": "#9ba2bb",
+                        "inverse-primary": "#006c49",
+                        "secondary-fixed": "#62fae3",
+                        "on-primary": "#003824",
+                        "error": "#ffb4ab",
+                        "primary-container": "#10b981",
+                        "background": "#051424",
+                        "primary-fixed-dim": "#4edea3",
+                        "surface-container-low": "#0d1c2d",
+                        "secondary-fixed-dim": "#3cddc7",
+                        "secondary-container": "#03c6b2",
+                        "on-tertiary": "#283044",
+                        "on-tertiary-fixed-variant": "#3f465c",
+                        "surface": "#051424",
+                        "on-secondary-fixed-variant": "#005047",
+                        "tertiary-fixed": "#dae2fd",
+                        "on-tertiary-fixed": "#131b2e",
+                        "on-surface": "#d4e4fa",
+                        "surface-variant": "#273647",
+                        "on-secondary-fixed": "#00201c",
+                        "primary": "#4edea3",
+                        "surface-tint": "#4edea3",
+                        "surface-container-lowest": "#010f1f",
+                        "primary-fixed": "#6ffbbe",
+                        "surface-dim": "#051424"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "glass-padding": "24px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "unit": "8px",
+                        "container-max": "1280px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-xl": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-xl": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "label-sm": ["12px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(45, 212, 191, 0.3);
+        }
+        .glow-effect {
+            box-shadow: 0 0 30px rgba(45, 212, 191, 0.15);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .btn-pulse {
+            animation: pulse-glow 2s infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-x-hidden">
+<!-- Top Navigation -->
+<nav class="fixed top-0 w-full z-50 bg-surface-container/60 dark:bg-surface-container/60 backdrop-blur-xl border-b border-outline-variant/10 shadow-[0_0_30px_rgba(3,198,178,0.15)] flex justify-between items-center px-margin-mobile md:px-margin-desktop h-16 transition-all duration-300">
+<div class="flex items-center gap-2 text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-headline-md font-headline-md">eco</span>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary">EcoPulse</span>
+</div>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-secondary dark:hover:text-secondary transition-colors font-label-md text-label-md" href="#">Impact</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-secondary dark:hover:text-secondary transition-colors font-label-md text-label-md" href="#">Planner</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-secondary dark:hover:text-secondary transition-colors font-label-md text-label-md" href="#">Trends</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-secondary dark:hover:text-secondary transition-colors font-label-md text-label-md flex items-center gap-2" href="#"><span class="material-symbols-outlined">person</span>Profile</a>
+</div>
+<div class="md:hidden flex items-center">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<!-- Background Shader -->
+<!-- STITCH_SHADER_START:ANIMATION_7 class="fixed inset-0 w-full h-full -z-10 pointer-events-none" -->
+<div class="fixed inset-0 w-full h-full -z-10 pointer-events-none" style="display:block;">
+<canvas id="shader-canvas-ANIMATION_7" style="display:block;width:100%;height:100%"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-ANIMATION_7');
+
+  // Sync the WebGL drawing-buffer size with the CSS-driven layout size.
+  // This fires on initial layout and whenever the element is resized.
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncSize).observe(canvas);
+  }
+  syncSize();
+
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;
+varying vec2 v_texCoord;
+void main() {
+  v_texCoord = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+  const fs = `precision highp float;
+varying vec2 v_texCoord;
+uniform float u_time;
+uniform vec2 u_resolution;
+
+void main() {
+    vec2 uv = v_texCoord;
+    
+    // Create organic flowing movement
+    float noise = sin(uv.x * 3.0 + u_time * 0.5) * cos(uv.y * 2.0 - u_time * 0.3);
+    noise += sin(uv.y * 5.0 + u_time * 0.8) * cos(uv.x * 4.0 - u_time * 0.2);
+    
+    // Eco palette colors
+    vec3 deepSlate = vec3(0.058, 0.09, 0.164); // #0f172a
+    vec3 emerald = vec3(0.062, 0.725, 0.505);  // #10b981
+    vec3 teal = vec3(0.176, 0.831, 0.749);     // #2dd4bf
+    
+    // Mix colors based on noise and position
+    vec3 color = mix(deepSlate, emerald * 0.3, clamp(noise + 0.5, 0.0, 1.0));
+    color = mix(color, teal * 0.2, clamp(sin(u_time * 0.2 + uv.x * 2.0), 0.0, 1.0) * 0.5);
+    
+    // Vignette
+    float dist = distance(uv, vec2(0.5));
+    color *= 1.2 - dist;
+
+    gl_FragColor = vec4(color, 1.0);
+}`;
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+  const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+
+  // u_mouse is in pixel coordinates matching u_resolution (ShaderToy convention).
+  // Shaders that need normalized coords should use: u_mouse / u_resolution.
+  let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+  window.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      const nx = (event.clientX - rect.left) / rect.width;
+      const ny = 1.0 - (event.clientY - rect.top) / rect.height;
+      mouse.x = nx * canvas.width;
+      mouse.y = ny * canvas.height;
+    }
+  });
+
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    if (uMouse) gl.uniform2f(uMouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+</div>
+<!-- STITCH_SHADER_END:ANIMATION_7 -->
+<!-- Main Content Container -->
+<main class="relative z-10 w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pb-32 pt-16">
+<!-- Hero Section -->
+<section class="min-h-[751px] flex flex-col justify-center items-center text-center relative mt-16 mb-24">
+<div class="glass-panel p-8 md:p-12 rounded-[32px] max-w-3xl mx-auto flex flex-col items-center gap-8 glow-effect">
+<h1 class="font-headline-xl text-headline-lg-mobile md:text-headline-xl text-on-background bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+                    Track your impact.<br/>Save the planet.<br/>Powered by AI.
+                </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+                    EcoPulse helps you measure, reduce, and track your carbon footprint with actionable insights and community-driven challenges.
+                </p>
+<button class="bg-primary-container text-white font-label-md text-label-md px-8 py-4 rounded-full transition-transform hover:scale-[1.02] active:scale-95 btn-pulse shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                    Start My Eco-Journey
+                </button>
+</div>
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-70 animate-bounce">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Scroll</span>
+<span class="material-symbols-outlined">keyboard_arrow_down</span>
+</div>
+</section>
+<!-- Insights Ticker -->
+<div class="glass-card rounded-2xl p-4 mb-16 flex items-center gap-4 overflow-hidden glow-effect relative">
+<span class="material-symbols-outlined text-secondary ml-2 shrink-0">lightbulb</span>
+<div class="w-full overflow-hidden relative h-6">
+<div class="absolute whitespace-nowrap transition-transform duration-500 font-label-md text-label-md text-on-surface" id="ticker">
+                    "Shorten your shower by 2 mins to save 15L of water"
+                </div>
+</div>
+</div>
+<script>
+            const tickerTexts = [
+                '"Shorten your shower by 2 mins to save 15L of water"',
+                '"Meatless Mondays can reduce your footprint by 15%"',
+                '"Switching to LED bulbs saves up to 80% on energy"'
+            ];
+            let tickerIndex = 0;
+            const tickerEl = document.getElementById('ticker');
+            
+            setInterval(() => {
+                tickerEl.style.transform = 'translateY(-100%)';
+                setTimeout(() => {
+                    tickerIndex = (tickerIndex + 1) % tickerTexts.length;
+                    tickerEl.innerText = tickerTexts[tickerIndex];
+                    tickerEl.style.transition = 'none';
+                    tickerEl.style.transform = 'translateY(100%)';
+                    setTimeout(() => {
+                        tickerEl.style.transition = 'transform 0.5s ease-out';
+                        tickerEl.style.transform = 'translateY(0)';
+                    }, 50);
+                }, 500);
+            }, 4000);
+        </script>
+</main>
+<!-- Bottom Navigation (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container-high/80 dark:bg-surface-container-high/80 backdrop-blur-2xl border-t border-outline-variant/20 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] flex justify-around items-center py-3 px-glass-padding">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-70 hover:text-secondary dark:hover:text-secondary transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform duration-300">energy_savings_leaf</span>
+<span class="font-label-sm text-label-sm mt-1">Impact</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-70 hover:text-secondary dark:hover:text-secondary transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform duration-300">calendar_today</span>
+<span class="font-label-sm text-label-sm mt-1">Planner</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-70 hover:text-secondary dark:hover:text-secondary transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform duration-300">trending_up</span>
+<span class="font-label-sm text-label-sm mt-1">Trends</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed bg-secondary-container/20 rounded-xl px-4 py-1 hover:text-secondary transition-colors group active" href="#">
+<span class="material-symbols-outlined scale-110 transition-transform duration-300" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</nav>
+</body></html>
