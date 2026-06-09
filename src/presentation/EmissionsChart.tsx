@@ -4,27 +4,49 @@ import React from 'react';
 import { useCarbonStore } from '../infrastructure/storage/CarbonStore';
 import { calculateMonthlyCarbon } from '../core/engine/carbonMath';
 
+const GLOBAL_AVERAGE_TRANSPORT_KG = 120;
+const GLOBAL_AVERAGE_ENERGY_KG = 150;
+const GLOBAL_AVERAGE_DIET_KG = 100;
+const GLOBAL_AVERAGE_WASTE_KG = 30;
+const GLOBAL_AVERAGE_TOTAL_KG = 400;
+
+const MAX_CHART_CATEGORY_KG = 300;
+const MIN_CHART_BAR_PCT = 8;
+const MAX_CHART_BAR_PCT = 100;
+const PERCENTAGE_MULTIPLIER = 100;
+
 /**
  * Premium Emissions Bar Chart component.
  * Displays calculated metrics (Transport, Energy, Diet, Waste) dynamically compared against global averages.
  * Integrates an invisible summary table for screen readers to fulfill WCAG contrast and accessibility compliance.
+ * Excludes magic numbers by utilizing semantic constants.
  */
 export default function EmissionsChart() {
   const { state } = useCarbonStore();
   const emissions = calculateMonthlyCarbon(state.carbonData);
 
   const globalAvg = {
-    transport: 120,
-    energy: 150,
-    diet: 100,
-    waste: 30,
-    total: 400
+    transport: GLOBAL_AVERAGE_TRANSPORT_KG,
+    energy: GLOBAL_AVERAGE_ENERGY_KG,
+    diet: GLOBAL_AVERAGE_DIET_KG,
+    waste: GLOBAL_AVERAGE_WASTE_KG,
+    total: GLOBAL_AVERAGE_TOTAL_KG
   };
 
-  const maxCategory = 300;
-  const getPct = (val: number) => Math.min(100, Math.max(8, (val / maxCategory) * 100));
+  /**
+   * Helper function to scale absolute emissions values into a visual percentage height for the chart bars.
+   * 
+   * @param val - Monthly emissions value in kg CO2.
+   * @returns Percentage value constrained between the minimum and maximum height limits.
+   */
+  const getPct = (val: number): number => {
+    return Math.min(
+      MAX_CHART_BAR_PCT, 
+      Math.max(MIN_CHART_BAR_PCT, (val / MAX_CHART_CATEGORY_KG) * PERCENTAGE_MULTIPLIER)
+    );
+  };
 
-  const totalDeltaPct = Math.round(((emissions.total - globalAvg.total) / globalAvg.total) * 100);
+  const totalDeltaPct = Math.round(((emissions.total - globalAvg.total) / globalAvg.total) * PERCENTAGE_MULTIPLIER);
   const deltaLabel = totalDeltaPct < 0 ? `${Math.abs(totalDeltaPct)}% lower` : `${totalDeltaPct}% higher`;
 
   return (
@@ -88,8 +110,8 @@ export default function EmissionsChart() {
       >
         {/* Y-axis markers */}
         <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-on-surface-variant/40 pb-2">
-          <span>{maxCategory} kg</span>
-          <span>{maxCategory / 2} kg</span>
+          <span>{MAX_CHART_CATEGORY_KG} kg</span>
+          <span>{MAX_CHART_CATEGORY_KG / 2} kg</span>
           <span>0 kg</span>
         </div>
 

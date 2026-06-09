@@ -10,10 +10,14 @@ interface ShareModalProps {
   trees: number;
 }
 
+const COPY_FEEDBACK_DURATION_MS = 2000;
+
 /**
  * Premium ShareModal Component.
  * Offers carbon stats text templates that users can copy to their clipboard
  * and share on Twitter, LinkedIn, etc. Styled as a clean, centered overlay.
+ * 
+ * @param props - Contains isOpen status, onClose handler, and emissions metrics to render.
  */
 export default function ShareModal({ isOpen, onClose, totalEmissions, streak, trees }: ShareModalProps) {
   const [copiedId, setCopiedId] = useState<number | null>(null);
@@ -41,11 +45,17 @@ export default function ShareModal({ isOpen, onClose, totalEmissions, streak, tr
     }
   ];
 
+  /**
+   * Copies the chosen social sharing template to the user's system clipboard.
+   * 
+   * @param text - The text string to copy.
+   * @param id - The ID of the template card to display feedback.
+   */
   const handleCopy = (text: string, id: number) => {
     try {
       navigator.clipboard.writeText(text);
       setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+      setTimeout(() => setCopiedId(null), COPY_FEEDBACK_DURATION_MS);
     } catch (err) {
       console.error("Failed to copy text: ", err);
     }

@@ -23,6 +23,9 @@ export const defaultState: CarbonState = {
   aiInsights: ''
 };
 
+/**
+ * Reducer actions structure for modifying the CarbonState store.
+ */
 export type CarbonAction =
   | { type: 'HYDRATE'; payload: CarbonState }
   | { type: 'UPDATE_METRICS'; payload: Partial<CarbonData> }
@@ -37,6 +40,15 @@ export type CarbonAction =
   | { type: 'SET_AI_INSIGHTS'; payload: string }
   | { type: 'RESET' };
 
+/**
+ * Standard pure React reducer function to execute state transformations on CarbonState.
+ * Follows the strict state immutability guidelines by returning new state objects
+ * instead of mutating the current state references.
+ * 
+ * @param state - The current read-only store state.
+ * @param action - The dispatched CarbonAction payload.
+ * @returns The newly derived CarbonState instance.
+ */
 export function carbonReducer(state: CarbonState, action: CarbonAction): CarbonState {
   switch (action.type) {
     case 'HYDRATE':

@@ -1,7 +1,85 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useCarbonStore } from '../infrastructure/storage/CarbonStore';
+
+interface BadgeConfig {
+  id: string;
+  name: string;
+  description: string;
+  svg: React.ReactNode;
+}
+
+const BADGE_CONFIG: BadgeConfig[] = [
+  {
+    id: 'transit-titan',
+    name: 'Transit Titan',
+    description: 'Commute via transit (15+ km/day)',
+    svg: (
+      <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="shrink-0" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="url(#grad1)" fillOpacity="0.2" stroke="#10b981" strokeWidth="2"/>
+        <path d="M20 32L28 40L44 24" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+        <defs>
+          <linearGradient id="grad1" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#10b981"/>
+            <stop offset="1" stopColor="#2dd4bf"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    )
+  },
+  {
+    id: 'meatless-master',
+    name: 'Meatless Master',
+    description: 'Logged a meat-free vegan/veggie diet',
+    svg: (
+      <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="shrink-0" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="url(#grad2)" fillOpacity="0.2" stroke="#2dd4bf" strokeWidth="2"/>
+        <path d="M32 18V46M18 32H46" stroke="#2dd4bf" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" transform="rotate(45 32 32)"/>
+        <defs>
+          <linearGradient id="grad2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#2dd4bf"/>
+            <stop offset="1" stopColor="#10b981"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    )
+  },
+  {
+    id: 'solar-flare',
+    name: 'Solar Flare',
+    description: 'Powered by 100% renewable electricity',
+    svg: (
+      <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="shrink-0" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="url(#grad3)" fillOpacity="0.2" stroke="#eab308" strokeWidth="2"/>
+        <path d="M32 16V20M32 44V48M16 32H20M44 32H48M21 21L24 24M40 40L43 43M21 43L24 40M40 21L43 24M32 26C28.6863 26 26 28.6863 26 32C26 35.3137 28.6863 38 32 38C35.3137 38 38 35.3137 38 32C38 28.6863 35.3137 26 32 26Z" stroke="#eab308" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <defs>
+          <linearGradient id="grad3" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#eab308"/>
+            <stop offset="1" stopColor="#f97316"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    )
+  },
+  {
+    id: 'zero-waste',
+    name: 'Zero Waste',
+    description: 'Minimize trash output (Low category)',
+    svg: (
+      <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="shrink-0" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="url(#grad4)" fillOpacity="0.2" stroke="#60a5fa" strokeWidth="2"/>
+        <path d="M22 24H42M26 24V44C26 45.1046 26.8954 46 28 46H36C37.1046 46 38 45.1046 38 44V24M30 18H34" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <defs>
+          <linearGradient id="grad4" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#60a5fa"/>
+            <stop offset="1" stopColor="#3b82f6"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    )
+  }
+];
 
 /**
  * Premium BadgeGrid component.
@@ -39,84 +117,20 @@ export default function BadgeGrid() {
     checkAndUnlock('zero-waste', 'Zero Waste', 'Maintain a low weekly waste emission score', wasteUnlocked);
   }, [transitUnlocked, meatlessUnlocked, solarUnlocked, wasteUnlocked, badges, dispatch]);
 
-  const allBadges = [
-    {
-      id: 'transit-titan',
-      name: 'Transit Titan',
-      description: 'Commute via transit (15+ km/day)',
-      isUnlocked: badges.some(b => b.id === 'transit-titan'),
-      unlockedAt: badges.find(b => b.id === 'transit-titan')?.unlockedAt,
-      svg: (
-        <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="shrink-0" aria-hidden="true">
-          <circle cx="32" cy="32" r="30" fill="url(#grad1)" fillOpacity="0.2" stroke="#10b981" strokeWidth="2"/>
-          <path d="M20 32L28 40L44 24" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-          <defs>
-            <linearGradient id="grad1" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#10b981"/>
-              <stop offset="1" stopColor="#2dd4bf"/>
-            </linearGradient>
-          </defs>
-        </svg>
-      )
-    },
-    {
-      id: 'meatless-master',
-      name: 'Meatless Master',
-      description: 'Logged a meat-free vegan/veggie diet',
-      isUnlocked: badges.some(b => b.id === 'meatless-master'),
-      unlockedAt: badges.find(b => b.id === 'meatless-master')?.unlockedAt,
-      svg: (
-        <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="shrink-0" aria-hidden="true">
-          <circle cx="32" cy="32" r="30" fill="url(#grad2)" fillOpacity="0.2" stroke="#2dd4bf" strokeWidth="2"/>
-          <path d="M32 18V46M18 32H46" stroke="#2dd4bf" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" transform="rotate(45 32 32)"/>
-          <defs>
-            <linearGradient id="grad2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#2dd4bf"/>
-              <stop offset="1" stopColor="#10b981"/>
-            </linearGradient>
-          </defs>
-        </svg>
-      )
-    },
-    {
-      id: 'solar-flare',
-      name: 'Solar Flare',
-      description: 'Powered by 100% renewable electricity',
-      isUnlocked: badges.some(b => b.id === 'solar-flare'),
-      unlockedAt: badges.find(b => b.id === 'solar-flare')?.unlockedAt,
-      svg: (
-        <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="shrink-0" aria-hidden="true">
-          <circle cx="32" cy="32" r="30" fill="url(#grad3)" fillOpacity="0.2" stroke="#eab308" strokeWidth="2"/>
-          <path d="M32 16V20M32 44V48M16 32H20M44 32H48M21 21L24 24M40 40L43 43M21 43L24 40M40 21L43 24M32 26C28.6863 26 26 28.6863 26 32C26 35.3137 28.6863 38 32 38C35.3137 38 38 35.3137 38 32C38 28.6863 35.3137 26 32 26Z" stroke="#eab308" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-          <defs>
-            <linearGradient id="grad3" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#eab308"/>
-              <stop offset="1" stopColor="#f97316"/>
-            </linearGradient>
-          </defs>
-        </svg>
-      )
-    },
-    {
-      id: 'zero-waste',
-      name: 'Zero Waste',
-      description: 'Minimize trash output (Low category)',
-      isUnlocked: badges.some(b => b.id === 'zero-waste'),
-      unlockedAt: badges.find(b => b.id === 'zero-waste')?.unlockedAt,
-      svg: (
-        <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="shrink-0" aria-hidden="true">
-          <circle cx="32" cy="32" r="30" fill="url(#grad4)" fillOpacity="0.2" stroke="#60a5fa" strokeWidth="2"/>
-          <path d="M22 24H42M26 24V44C26 45.1046 26.8954 46 28 46H36C37.1046 46 38 45.1046 38 44V24M30 18H34" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-          <defs>
-            <linearGradient id="grad4" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#60a5fa"/>
-              <stop offset="1" stopColor="#3b82f6"/>
-            </linearGradient>
-          </defs>
-        </svg>
-      )
-    }
-  ];
+  const unlockedBadgesMap = useMemo(() => {
+    return new Map(badges.map(b => [b.id, b]));
+  }, [badges]);
+
+  const allBadges = useMemo(() => {
+    return BADGE_CONFIG.map(badge => {
+      const unlocked = unlockedBadgesMap.get(badge.id);
+      return {
+        ...badge,
+        isUnlocked: !!unlocked,
+        unlockedAt: unlocked?.unlockedAt
+      };
+    });
+  }, [unlockedBadgesMap]);
 
   return (
     <div className="glass-panel rounded-xl p-6 flex flex-col">

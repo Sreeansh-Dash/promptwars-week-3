@@ -8,13 +8,19 @@ import CarbonCalculator from '../presentation/CarbonCalculator';
 import EmissionsChart from '../presentation/EmissionsChart';
 import BadgeGrid from '../presentation/BadgeGrid';
 import ShareModal from '../presentation/ShareModal';
+import MarkdownRenderer from '../presentation/MarkdownRenderer';
+
+const MONTHLY_TREE_CO2_ABSORPTION_KG = 1.83;
+const LOW_EMISSIONS_THRESHOLD_KG = 250;
+const AVERAGE_EMISSIONS_THRESHOLD_KG = 400;
+const ROUNDING_MULTIPLIER_ONE_DECIMAL = 10;
 
 /**
  * Main application dashboard content.
  * Wires together all presentation components (Shader background, Ticker, Calculator, SVG Chart, Badges, and Habit Planner).
  */
 export default function Home() {
-  const { state, dispatch, isHydrated } = useCarbonStore();
+  const { state, dispatch, isHydrated, hasHydrationError, dismissHydrationError } = useCarbonStore();
   const [welcome, setWelcome] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'calculator' | 'achievements' | 'planner'
   
@@ -36,18 +42,18 @@ export default function Home() {
   const emissions = calculateMonthlyCarbon(state.carbonData);
 
   // Calculate trees equivalent: 1 mature tree absorbs ~22kg CO2 per year, which is ~1.83kg per month
-  const treesEquivalent = Math.round((emissions.total / 1.83) * 10) / 10;
+  const treesEquivalent = Math.round((emissions.total / MONTHLY_TREE_CO2_ABSORPTION_KG) * ROUNDING_MULTIPLIER_ONE_DECIMAL) / ROUNDING_MULTIPLIER_ONE_DECIMAL;
   
   // Status check based on global average (400kg CO2)
-  const statusLabel = emissions.total <= 250 
+  const statusLabel = emissions.total <= LOW_EMISSIONS_THRESHOLD_KG 
     ? 'Excellent (-35% or more)' 
-    : emissions.total <= 400 
+    : emissions.total <= AVERAGE_EMISSIONS_THRESHOLD_KG 
       ? 'Optimal (Under average)' 
       : 'High Footprint';
       
-  const statusColor = emissions.total <= 250 
+  const statusColor = emissions.total <= LOW_EMISSIONS_THRESHOLD_KG 
     ? 'text-primary font-bold' 
-    : emissions.total <= 400 
+    : emissions.total <= AVERAGE_EMISSIONS_THRESHOLD_KG 
       ? 'text-secondary font-bold' 
       : 'text-error font-bold';
 
@@ -131,79 +137,7 @@ export default function Home() {
     { id: 3, text: "Peak pricing starts in 30 minutes." }
   ];
 
-  // Helper function to render insights Markdown safely without dependencies
-  const renderMarkdown = (text: string | undefined) => {
-    if (!text) {
-      return (
-        <div className="text-center py-8 text-on-surface-variant/80">
-          <span className="material-symbols-outlined text-4xl block text-primary/40 mb-3" aria-hidden="true">auto_awesome</span>
-          <p className="text-body-md font-medium">No AI insights generated yet.</p>
-          <button 
-            type="button"
-            onClick={() => setActiveTab('calculator')}
-            className="mt-3 text-label-sm font-bold text-secondary underline hover:opacity-90 transition-all focus:outline-none"
-          >
-            Fill out Calculator to run AI analysis
-          </button>
-        </div>
-      );
-    }
 
-    const parseBold = (str: string) => {
-      const parts = str.split(/\*\*([^*]+)\*\*/g);
-      return parts.map((part, i) => {
-        if (i % 2 === 1) {
-          return <strong key={i} className="text-secondary font-extrabold">{part}</strong>;
-        }
-        return part;
-      });
-    };
-
-    const lines = text.split('\n');
-    return (
-      <div className="space-y-4 font-body-md text-body-md text-on-surface-variant select-text pr-2 leading-relaxed">
-        {lines.map((line, idx) => {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('###')) {
-            return (
-              <h3 key={idx} className="font-headline-sm text-headline-sm text-primary font-bold mt-5 mb-2.5 border-b border-white/5 pb-2">
-                {trimmed.replace(/^###\s*/, '')}
-              </h3>
-            );
-          }
-          if (trimmed.startsWith('##')) {
-            return (
-              <h2 key={idx} className="font-headline-md text-headline-md text-primary font-bold mt-6 mb-3 border-b border-white/10 pb-2">
-                {trimmed.replace(/^##\s*/, '')}
-              </h2>
-            );
-          }
-          if (trimmed.startsWith('1.') || trimmed.startsWith('2.') || trimmed.startsWith('3.')) {
-            const content = trimmed.replace(/^\d+\.\s*/, '');
-            return (
-              <div key={idx} className="flex gap-2.5 items-start pl-2 my-2.5">
-                <span className="text-primary font-extrabold shrink-0">{trimmed.match(/^\d+\./)?.[0]}</span>
-                <span className="flex-1 text-on-surface-variant font-medium">{parseBold(content)}</span>
-              </div>
-            );
-          }
-          if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-            const content = trimmed.replace(/^[-*]\s*/, '');
-            return (
-              <div key={idx} className="flex gap-2.5 items-start pl-4 my-2.5">
-                <span className="text-secondary shrink-0">•</span>
-                <span className="flex-1 text-on-surface-variant font-medium">{parseBold(content)}</span>
-              </div>
-            );
-          }
-          if (trimmed === '') {
-            return <div key={idx} className="h-1" />;
-          }
-          return <p key={idx} className="font-medium text-on-surface-variant my-2.5">{parseBold(trimmed)}</p>;
-        })}
-      </div>
-    );
-  };
 
   // Prevent hydration mismatch errors by displaying a premium dark-themed loading skeleton
   if (!isHydrated) {
@@ -415,6 +349,25 @@ export default function Home() {
 
         {/* Dashboard Pages */}
         <div className="flex-1 w-full max-w-[1280px] mx-auto px-6 py-6 space-y-6">
+          {hasHydrationError && (
+            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-6 py-4 rounded-xl flex items-center justify-between animate-in fade-in duration-200" role="alert">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-amber-400" aria-hidden="true">warning</span>
+                <div>
+                  <h4 className="font-bold text-sm">Storage Corrupted & Reset</h4>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Outdated or corrupt local storage data was detected. Your state has been reset to defaults to ensure stability.</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={dismissHydrationError}
+                className="text-on-surface-variant hover:text-amber-400 text-sm font-semibold focus:outline-none transition-colors"
+                aria-label="Dismiss warning"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
           
           {/* Main Dashboard Layout */}
           {activeTab === 'dashboard' && (
@@ -487,7 +440,7 @@ export default function Home() {
                     )}
                   </div>
                   <div className="max-h-64 overflow-y-auto bg-black/25 p-4 rounded-xl border border-white/5 scrollbar-thin scrollbar-thumb-white/10">
-                    {renderMarkdown(state.aiInsights)}
+                    <MarkdownRenderer text={state.aiInsights} onCalculatorRedirect={() => setActiveTab('calculator')} />
                   </div>
                 </div>
 
@@ -643,7 +596,7 @@ export default function Home() {
                 </div>
                 
                 <div className="bg-black/20 border border-white/5 rounded-2xl p-6 min-h-[300px] overflow-y-auto leading-relaxed scrollbar-thin">
-                  {renderMarkdown(state.aiInsights)}
+                  <MarkdownRenderer text={state.aiInsights} onCalculatorRedirect={() => setActiveTab('calculator')} />
                 </div>
 
               </div>
