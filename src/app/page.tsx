@@ -136,7 +136,7 @@ export default function Home() {
     if (!text) {
       return (
         <div className="text-center py-8 text-on-surface-variant/80">
-          <span className="material-symbols-outlined text-4xl block text-primary/40 mb-3">auto_awesome</span>
+          <span className="material-symbols-outlined text-4xl block text-primary/40 mb-3" aria-hidden="true">auto_awesome</span>
           <p className="text-body-md font-medium">No AI insights generated yet.</p>
           <button 
             type="button"
@@ -209,7 +209,7 @@ export default function Home() {
   if (!isHydrated) {
     return (
       <div className="min-h-screen bg-[#0e1511] flex flex-col items-center justify-center text-on-surface" role="status" aria-live="polite">
-        <span className="material-symbols-outlined text-primary text-5xl animate-spin">eco</span>
+        <span className="material-symbols-outlined text-primary text-5xl animate-spin" aria-hidden="true">eco</span>
         <h2 className="mt-4 font-headline-md text-headline-md tracking-wider">EcoPulse Preparing...</h2>
         <p className="text-on-surface-variant text-body-md mt-2">Initializing Local-First state engine.</p>
       </div>
@@ -223,7 +223,7 @@ export default function Home() {
         <ShaderCanvas />
         <main className="glass-panel p-8 md:p-14 rounded-[32px] max-w-3xl w-full text-center flex flex-col items-center gap-8 glow-effect">
           <div className="flex items-center gap-3 text-primary">
-            <span className="material-symbols-outlined text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+            <span className="material-symbols-outlined text-5xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">eco</span>
             <span className="font-headline-md text-headline-md font-extrabold tracking-wider text-primary">EcoPulse</span>
           </div>
           <h1 className="font-headline-xl text-headline-xl font-black leading-tight text-on-background bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
@@ -251,10 +251,10 @@ export default function Home() {
       {/* Navigation Drawer (Desktop Sidebar) */}
       <aside className="hidden md:flex flex-col h-full w-80 fixed left-0 top-0 z-[60] bg-[#161d19]/85 backdrop-blur-[40px] border-r border-primary/20 shadow-2xl py-8 justify-between">
         <div className="px-6 pb-6 border-b border-white/10">
-          <h1 className="font-headline-md text-headline-md text-primary flex items-center gap-2 font-bold mb-6">
-            <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+          <div className="font-headline-md text-headline-md text-primary flex items-center gap-2 font-bold mb-6">
+            <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">eco</span>
             EcoPulse
-          </h1>
+          </div>
           
           {/* Editable User Profile Info */}
           {isEditingProfile ? (
@@ -288,7 +288,7 @@ export default function Home() {
           ) : (
             <div className="flex items-center gap-4 group p-1.5 hover:bg-white/5 rounded-xl transition-all">
               <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
-                <span className="material-symbols-outlined text-primary text-3xl">person</span>
+                <span className="material-symbols-outlined text-primary text-3xl" aria-hidden="true">person</span>
               </div>
               <div className="flex-1">
                 <h2 className="font-label-md text-label-md text-on-surface font-bold flex items-center gap-2">
@@ -299,7 +299,7 @@ export default function Home() {
                     className="material-symbols-outlined text-on-surface-variant hover:text-primary text-base focus:outline-none transition-colors"
                     aria-label="Edit Profile"
                   >
-                    edit
+                    <span aria-hidden="true">edit</span>
                   </button>
                 </h2>
                 <p className="font-label-sm text-xs text-on-surface-variant font-medium mt-0.5">{state.userProfile.title}</p>
@@ -325,7 +325,7 @@ export default function Home() {
                   : 'text-on-surface-variant hover:bg-white/5 hover:text-secondary border-transparent'
               }`}
             >
-              <span className="material-symbols-outlined text-2xl">{tab.icon}</span>
+              <span className="material-symbols-outlined text-2xl" aria-hidden="true">{tab.icon}</span>
               {tab.label}
             </button>
           ))}
@@ -358,16 +358,19 @@ export default function Home() {
       {/* Main Content Area */}
       <main className="flex-1 md:ml-80 pb-24 md:pb-8 flex flex-col min-h-screen">
         
+        {/* Visually Hidden h1 to fulfill WCAG 2.1 Single H1 per page requirement */}
+        <h1 className="sr-only">EcoPulse Dashboard — Local-First Carbon Footprint Tracker</h1>
+
         {/* Top Header Bar */}
         <header className="z-50 bg-[#0e1511]/60 backdrop-blur-[20px] border-b border-white/10 flex justify-between items-center w-full px-6 py-5 sticky top-0">
           <div className="flex items-center gap-2 md:hidden">
-            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">eco</span>
             <span className="font-headline-sm text-headline-sm font-bold text-primary">EcoPulse</span>
           </div>
 
           {/* Predictive AI Ticker */}
           <div className="flex-1 md:ml-0 ml-4 max-w-2xl mx-auto glass-panel rounded-full px-6 py-2.5 flex items-center gap-3 text-sm">
-            <span className="material-symbols-outlined text-secondary text-lg animate-pulse">auto_awesome</span>
+            <span className="material-symbols-outlined text-secondary text-lg animate-pulse" aria-hidden="true">auto_awesome</span>
             <div className="relative h-6 overflow-hidden flex-1" aria-label="Real-time environmental notifications">
               <div className="font-label-sm text-xs text-on-surface-variant flex items-center">
                 <span className="text-primary mr-2 font-bold">[AI Pulse]:</span>
@@ -389,7 +392,7 @@ export default function Home() {
               }`}
               aria-label="Toggle notifications"
             >
-              <span className="material-symbols-outlined text-xl">notifications</span>
+              <span className="material-symbols-outlined text-xl" aria-hidden="true">notifications</span>
               <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full animate-ping" />
               <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full" />
             </button>
@@ -435,7 +438,7 @@ export default function Home() {
                         <span className="font-label-sm text-xs text-secondary uppercase tracking-wider font-bold">Monthly Impact</span>
                         <h3 className="font-headline-md text-headline-md text-on-surface mt-1 font-extrabold">{emissions.total} kg CO₂</h3>
                       </div>
-                      <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>energy_savings_leaf</span>
+                      <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">energy_savings_leaf</span>
                     </div>
                     
                     <div className="space-y-4 border-y border-white/10 py-4 my-4">
@@ -459,7 +462,7 @@ export default function Home() {
                     onClick={() => setShareModalOpen(true)}
                     className="btn-secondary w-full font-label-md text-label-md px-4 py-3.5 rounded-lg flex items-center justify-center gap-2 mt-4 focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <span className="material-symbols-outlined text-lg">share</span>
+                    <span className="material-symbols-outlined text-lg" aria-hidden="true">share</span>
                     Share Progress
                   </button>
                 </div>
@@ -468,7 +471,7 @@ export default function Home() {
                 <div className="glass-panel p-6 rounded-xl flex flex-col border border-white/10">
                   <div className="flex justify-between items-center mb-3">
                     <h2 className="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2 font-bold">
-                      <span className="material-symbols-outlined text-primary text-xl">auto_awesome</span>
+                      <span className="material-symbols-outlined text-primary text-xl" aria-hidden="true">auto_awesome</span>
                       Predictive Insights
                     </h2>
                     {state.aiInsights && (
@@ -478,7 +481,7 @@ export default function Home() {
                         className="text-xs text-secondary hover:text-primary flex items-center gap-1 font-semibold focus:outline-none"
                         aria-label="Copy AI Insights Report"
                       >
-                        <span className="material-symbols-outlined text-sm">{copiedInsights ? 'check' : 'content_copy'}</span>
+                        <span className="material-symbols-outlined text-sm" aria-hidden="true">{copiedInsights ? 'check' : 'content_copy'}</span>
                         {copiedInsights ? 'Copied!' : 'Copy'}
                       </button>
                     )}
@@ -491,7 +494,7 @@ export default function Home() {
                 {/* Custom Habit Adder */}
                 <div className="glass-panel p-6 rounded-xl flex flex-col border border-white/10">
                   <h2 className="font-headline-sm text-headline-sm text-on-surface mb-2 flex items-center gap-2 font-bold">
-                    <span className="material-symbols-outlined text-secondary text-xl">checklist</span>
+                    <span className="material-symbols-outlined text-secondary text-xl" aria-hidden="true">checklist</span>
                     Custom Habit Tracker
                   </h2>
                   <p className="text-xs text-on-surface-variant mb-4">Add your own eco-friendly habits and check them off to build your streak.</p>
@@ -560,7 +563,7 @@ export default function Home() {
                               className="material-symbols-outlined text-on-surface-variant hover:text-error text-lg focus:outline-none transition-colors"
                               aria-label={`Delete habit ${action.title}`}
                             >
-                              delete
+                              <span aria-hidden="true">delete</span>
                             </button>
                           </div>
                           
@@ -633,7 +636,7 @@ export default function Home() {
                       className="btn-secondary px-4 py-2.5 rounded-lg flex items-center gap-2 font-bold text-label-sm focus:outline-none"
                       aria-label="Copy full report"
                     >
-                      <span className="material-symbols-outlined text-lg">{copiedInsights ? 'check' : 'content_copy'}</span>
+                      <span className="material-symbols-outlined text-lg" aria-hidden="true">{copiedInsights ? 'check' : 'content_copy'}</span>
                       {copiedInsights ? 'Report Copied!' : 'Copy Report'}
                     </button>
                   )}
@@ -663,11 +666,11 @@ export default function Home() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex flex-col items-center justify-center transition-all ${
                 activeTab === tab.id
-                  ? 'text-primary bg-primary/10 rounded-full px-4 py-1'
+                  ? 'text-primary bg-primary/15 rounded-full px-4 py-1 font-bold'
                   : 'text-on-surface-variant opacity-75'
               }`}
             >
-              <span className="material-symbols-outlined">{tab.icon}</span>
+              <span className="material-symbols-outlined" aria-hidden="true">{tab.icon}</span>
               <span className="text-[10px] font-bold mt-0.5">{tab.label}</span>
             </button>
           ))}

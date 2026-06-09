@@ -67,11 +67,11 @@ export default function ShareModal({ isOpen, onClose, totalEmissions, streak, tr
           className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-on-surface transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           aria-label="Close dialog"
         >
-          <span className="material-symbols-outlined text-[20px]">close</span>
+          <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
         </button>
 
         <h3 id="modal-title" className="font-headline-md text-headline-md text-primary font-bold mb-3 flex items-center gap-2 pr-10">
-          <span className="material-symbols-outlined text-[24px]">share</span>
+          <span className="material-symbols-outlined text-[24px]" aria-hidden="true">share</span>
           Share Your Progress
         </h3>
         <p className="text-body-md text-on-surface-variant mb-6">Select a pre-made social template below to copy and paste to your social media app of choice.</p>
@@ -90,7 +90,7 @@ export default function ShareModal({ isOpen, onClose, totalEmissions, streak, tr
                       : 'bg-white/5 text-on-surface hover:bg-white/10 border border-white/10'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[16px]">
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
                     {copiedId === tpl.id ? 'check' : 'content_copy'}
                   </span>
                   {copiedId === tpl.id ? 'Copied!' : 'Copy'}

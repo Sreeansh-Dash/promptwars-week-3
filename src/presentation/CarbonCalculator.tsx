@@ -97,7 +97,7 @@ export default function CarbonCalculator() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
         <h2 className="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">calculate</span>
+          <span className="material-symbols-outlined text-primary" aria-hidden="true">calculate</span>
           Impact Check-in
         </h2>
         <div className="flex gap-1" aria-label={`Step ${step} of 4`}>
@@ -137,7 +137,7 @@ export default function CarbonCalculator() {
                       : 'hover:bg-white/5 text-on-surface-variant'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-2xl">{item.icon}</span>
+                  <span className="material-symbols-outlined text-2xl" aria-hidden="true">{item.icon}</span>
                   <span className="text-xs font-bold">{item.label}</span>
                 </button>
               ))}
@@ -192,7 +192,7 @@ export default function CarbonCalculator() {
                       : 'hover:bg-white/5 text-on-surface-variant'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-2xl">{item.icon}</span>
+                  <span className="material-symbols-outlined text-2xl" aria-hidden="true">{item.icon}</span>
                   <span className="text-xs font-bold">{item.label}</span>
                 </button>
               ))}
@@ -248,7 +248,7 @@ export default function CarbonCalculator() {
                       : 'hover:bg-white/5 text-on-surface-variant'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-2xl shrink-0">{item.icon}</span>
+                  <span className="material-symbols-outlined text-2xl shrink-0" aria-hidden="true">{item.icon}</span>
                   <div>
                     <span className="text-xs font-bold block">{item.label}</span>
                     <span className="text-[10px] text-on-surface-variant/80">{item.desc}</span>
@@ -280,7 +280,7 @@ export default function CarbonCalculator() {
                       : 'hover:bg-white/5 text-on-surface-variant'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-2xl">{item.icon}</span>
+                  <span className="material-symbols-outlined text-2xl" aria-hidden="true">{item.icon}</span>
                   <span className="text-xs font-bold block">{item.label}</span>
                   <span className="text-[10px] text-on-surface-variant/80">{item.desc}</span>
                 </button>
@@ -290,7 +290,6 @@ export default function CarbonCalculator() {
         )}
       </div>
 
-      {/* Footer Controls */}
       <div className="mt-8 flex justify-between border-t border-white/5 pt-4">
         {step > 1 ? (
           <button 
@@ -298,7 +297,7 @@ export default function CarbonCalculator() {
             onClick={handleBack}
             className="btn-secondary px-5 py-2.5 rounded-lg font-label-md text-label-md flex items-center gap-2"
           >
-            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">arrow_back</span>
             Back
           </button>
         ) : (
@@ -312,7 +311,7 @@ export default function CarbonCalculator() {
             className="btn-primary px-5 py-2.5 rounded-lg font-label-md text-label-md flex items-center gap-2"
           >
             Next Step
-            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
           </button>
         ) : (
           <button 
@@ -322,7 +321,7 @@ export default function CarbonCalculator() {
             className="btn-primary px-6 py-2.5 rounded-lg font-label-md text-label-md flex items-center gap-2 bg-gradient-to-r from-primary to-teal-500 hover:from-primary/90 hover:to-teal-500/90 text-slate-950 font-bold"
           >
             {isLoading ? 'Processing...' : 'Log & Get AI Insights'}
-            <span className="material-symbols-outlined text-sm">auto_awesome</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">auto_awesome</span>
           </button>
         )}
       </div>

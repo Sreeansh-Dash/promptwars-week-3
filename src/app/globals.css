@@ -5,7 +5,7 @@
 body {
   background-color: #0e1511;
   color: #d4e4fa;
-  font-family: 'Plus Jakarta Sans', var(--font-geist-sans), sans-serif;
+  font-family: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', var(--font-geist-sans), sans-serif;
 }
 
 /* Typography Scaling - Fixing tiny fonts */

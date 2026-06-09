@@ -40,7 +40,7 @@ export default function EmissionsChart() {
       </div>
 
       {/* Screen Reader Accessible Table Summary (visually hidden but fully descriptive) */}
-      <div style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
+      <div className="sr-only">
         <h3>Emissions Comparison Table</h3>
         <table>
           <thead>

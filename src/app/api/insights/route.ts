@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     if (err?.headers) {
       console.error("API Headers:", JSON.stringify(err.headers));
     }
-    console.error("Current GROQ_API_KEY environment variable starts with:", process.env.GROQ_API_KEY ? `${process.env.GROQ_API_KEY.slice(0, 10)}...` : 'UNDEFINED');
+    console.error("GROQ_API_KEY status:", process.env.GROQ_API_KEY ? 'DEFINED (Security Safe)' : 'UNDEFINED');
     console.error("================================================================\n");
     
     // Graceful circuit breaker fallback
