@@ -1,413 +1,687 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useCarbon } from '../context/CarbonContext';
-import { GLOBAL_AVERAGE_MONTHLY_KG } from '../utils/carbonEngine';
-import { CarbonData } from '../types';
-import { exportDataJson } from '../utils/exportData';
+import React, { useState } from 'react';
+import { useCarbonStore } from '../infrastructure/storage/CarbonStore';
+import { calculateMonthlyCarbon } from '../core/engine/carbonMath';
+import ShaderCanvas from '../presentation/ShaderCanvas';
+import CarbonCalculator from '../presentation/CarbonCalculator';
+import EmissionsChart from '../presentation/EmissionsChart';
+import BadgeGrid from '../presentation/BadgeGrid';
+import ShareModal from '../presentation/ShareModal';
 
+/**
+ * Main application dashboard content.
+ * Wires together all presentation components (Shader background, Ticker, Calculator, SVG Chart, Badges, and Habit Planner).
+ */
 export default function Home() {
-  const { carbonData, setCarbonData, monthlyEmissions, actions, setActions, toggleActionCompleted, streak, badges, history, isMounted, saveDataToLocal } = useCarbon();
-  const [isGettingInsights, setIsGettingInsights] = useState(false);
-  const [wizardStep, setWizardStep] = useState(1);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { state, dispatch, isHydrated } = useCarbonStore();
+  const [welcome, setWelcome] = useState(true);
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'calculator' | 'achievements' | 'planner'
+  
+  // Custom states for interactive features
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileTitle, setProfileTitle] = useState('');
+  
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  
+  // Custom habit input state
+  const [newHabitTitle, setNewHabitTitle] = useState('');
+  const [newHabitDesc, setNewHabitDesc] = useState('');
+  const [newHabitCo2, setNewHabitCo2] = useState(5);
 
-  // Background WebGL Shader Logic
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    
-    function syncSize() {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-      }
-    }
-    window.addEventListener('resize', syncSize);
-    syncSize();
+  const [copiedInsights, setCopiedInsights] = useState(false);
 
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (!gl) return;
-    const vs = `attribute vec2 a_position;
-    varying vec2 v_texCoord;
-    void main() {
-      v_texCoord = a_position * 0.5 + 0.5;
-      gl_Position = vec4(a_position, 0.0, 1.0);
-    }`;
-    const fs = `precision highp float;
-    varying vec2 v_texCoord;
-    uniform float u_time;
-    uniform vec2 u_resolution;
-    
-    void main() {
-        vec2 uv = v_texCoord;
-        float noise = sin(uv.x * 3.0 + u_time * 0.5) * cos(uv.y * 2.0 - u_time * 0.3);
-        noise += sin(uv.y * 5.0 + u_time * 0.8) * cos(uv.x * 4.0 - u_time * 0.2);
-        
-        vec3 deepSlate = vec3(0.02, 0.08, 0.14); // background #051424 approx
-        vec3 emerald = vec3(0.062, 0.725, 0.505);  // #10b981
-        vec3 teal = vec3(0.176, 0.831, 0.749);     // #2dd4bf
-        
-        vec3 color = mix(deepSlate, emerald * 0.3, clamp(noise + 0.5, 0.0, 1.0));
-        color = mix(color, teal * 0.2, clamp(sin(u_time * 0.2 + uv.x * 2.0), 0.0, 1.0) * 0.5);
-        
-        float dist = distance(uv, vec2(0.5));
-        color *= 1.2 - dist;
-    
-        gl_FragColor = vec4(color, 1.0);
-    }`;
-    function cs(type: number, src: string) {
-      const s = (gl as WebGLRenderingContext).createShader(type)!;
-      (gl as WebGLRenderingContext).shaderSource(s, src);
-      (gl as WebGLRenderingContext).compileShader(s);
-      return s;
-    }
-    const prog = gl.createProgram()!;
-    gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
-    gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
-    gl.linkProgram(prog);
-    gl.useProgram(prog);
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-    const pos = gl.getAttribLocation(prog, 'a_position');
-    gl.enableVertexAttribArray(pos);
-    gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-    const uTime = gl.getUniformLocation(prog, 'u_time');
-    
-    let animationFrameId: number;
-    function render(t: number) {
-      gl!.viewport(0, 0, canvas.width, canvas.height);
-      if (uTime) gl!.uniform1f(uTime, t * 0.001);
-      gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
-      animationFrameId = requestAnimationFrame(render);
-    }
-    render(0);
-    return () => {
-      window.removeEventListener('resize', syncSize);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
+  const emissions = calculateMonthlyCarbon(state.carbonData);
 
-  const fetchInsights = async () => {
-    setIsGettingInsights(true);
-    saveDataToLocal(); // Save current before asking API
-    try {
-      const response = await fetch('/api/insights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(carbonData),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.insights && Array.isArray(data.insights)) {
-          // Map to ActionItem
-          const newActions = data.insights.map((act: any, i: number) => ({
-            id: `ai-act-${Date.now()}-${i}`,
-            title: act.title,
-            description: act.description,
-            co2SavedKg: act.co2SavedKg,
-            completed: false
-          }));
-          setActions(newActions);
-        }
-      } else {
-        console.error("Failed to fetch insights");
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    setIsGettingInsights(false);
-  };
-
-  const handleUpdateData = (field: keyof CarbonData, subfield: string, value: string | number) => {
-    setCarbonData(prev => {
-      if (typeof prev[field] === 'object') {
-        return { ...prev, [field]: { ...prev[field], [subfield]: value } };
-      }
-      return { ...prev, [field]: value };
-    });
-  };
+  // Calculate trees equivalent: 1 mature tree absorbs ~22kg CO2 per year, which is ~1.83kg per month
+  const treesEquivalent = Math.round((emissions.total / 1.83) * 10) / 10;
+  
+  // Status check based on global average (400kg CO2)
+  const statusLabel = emissions.total <= 250 
+    ? 'Excellent (-35% or more)' 
+    : emissions.total <= 400 
+      ? 'Optimal (Under average)' 
+      : 'High Footprint';
+      
+  const statusColor = emissions.total <= 250 
+    ? 'text-primary font-bold' 
+    : emissions.total <= 400 
+      ? 'text-secondary font-bold' 
+      : 'text-error font-bold';
 
   const handleExport = () => {
-    const fullState = { carbonData, actions, streak, badges, history };
-    exportDataJson(fullState, `ecopulse-export-${new Date().toISOString().split('T')[0]}.json`);
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `ecopulse-carbon-data-${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (e) {
+      console.error("Failed to export state data:", e);
+    }
   };
 
-  if (!isMounted) return null; // Avoid hydration mismatch
+  const handleReset = () => {
+    if (confirm('Are you sure you want to reset all your carbon metrics, history logs, and unlocked badges?')) {
+      dispatch({ type: 'RESET' });
+      localStorage.removeItem('ecoPulseData_v1');
+      alert('Application reset successfully.');
+    }
+  };
 
-  const userTotal = monthlyEmissions.total;
-  const maxBarValue = Math.max(userTotal, GLOBAL_AVERAGE_MONTHLY_KG, 1000);
-  const userBarHeight = (userTotal / maxBarValue) * 100;
-  const globalBarHeight = (GLOBAL_AVERAGE_MONTHLY_KG / maxBarValue) * 100;
+  const startEditProfile = () => {
+    setProfileName(state.userProfile.name);
+    setProfileTitle(state.userProfile.title);
+    setIsEditingProfile(true);
+  };
 
-  return (
-    <div className="text-on-background font-body-md overflow-x-hidden min-h-screen relative">
-      <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none">
-        <canvas ref={canvasRef} className="block w-full h-full"></canvas>
-      </div>
+  const saveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileName.trim()) return;
+    dispatch({
+      type: 'UPDATE_PROFILE',
+      payload: {
+        name: profileName,
+        title: profileTitle || 'Eco Novice'
+      }
+    });
+    setIsEditingProfile(false);
+  };
 
-      {/* Top Nav */}
-      <nav className="fixed top-0 w-full z-50 bg-surface-container/60 backdrop-blur-xl border-b border-outline-variant/10 shadow-[0_0_30px_rgba(3,198,178,0.15)] flex justify-between items-center px-4 md:px-10 h-16 transition-all duration-300">
-        <div className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
-          <span className="font-bold text-xl text-primary tracking-wide">EcoPulse</span>
-        </div>
-        <div className="hidden md:flex items-center gap-6">
-          <div className="text-on-surface-variant font-semibold flex items-center gap-1">
-            🔥 {streak} Day Streak
-          </div>
-          <button onClick={handleExport} className="text-on-surface hover:text-primary transition-colors text-sm font-semibold border border-outline px-3 py-1 rounded-md">
-            Export Data
+  const handleAddCustomHabit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newHabitTitle.trim()) return;
+    dispatch({
+      type: 'ADD_CUSTOM_ACTION',
+      payload: {
+        id: `custom-habit-${Date.now()}`,
+        title: newHabitTitle,
+        description: newHabitDesc || 'User created custom habit.',
+        co2SavedKg: newHabitCo2,
+        completed: false
+      }
+    });
+    setNewHabitTitle('');
+    setNewHabitDesc('');
+    setNewHabitCo2(5);
+  };
+
+  const handleDeleteHabit = (id: string) => {
+    dispatch({ type: 'DELETE_ACTION', payload: id });
+  };
+
+  const handleCopyInsights = () => {
+    if (!state.aiInsights) return;
+    try {
+      navigator.clipboard.writeText(state.aiInsights);
+      setCopiedInsights(true);
+      setTimeout(() => setCopiedInsights(false), 2000);
+    } catch (e) {
+      console.error("Failed to copy insights text: ", e);
+    }
+  };
+
+  const notifications = [
+    { id: 1, text: "Grid shifting to 80% renewable today." },
+    { id: 2, text: "Your travel emissions are down 12%." },
+    { id: 3, text: "Peak pricing starts in 30 minutes." }
+  ];
+
+  // Helper function to render insights Markdown safely without dependencies
+  const renderMarkdown = (text: string | undefined) => {
+    if (!text) {
+      return (
+        <div className="text-center py-8 text-on-surface-variant/80">
+          <span className="material-symbols-outlined text-4xl block text-primary/40 mb-3">auto_awesome</span>
+          <p className="text-body-md font-medium">No AI insights generated yet.</p>
+          <button 
+            type="button"
+            onClick={() => setActiveTab('calculator')}
+            className="mt-3 text-label-sm font-bold text-secondary underline hover:opacity-90 transition-all focus:outline-none"
+          >
+            Fill out Calculator to run AI analysis
           </button>
         </div>
-      </nav>
+      );
+    }
 
-      <main className="relative z-10 w-full max-w-[1280px] mx-auto px-4 md:px-10 pb-32 pt-24 space-y-16">
-        
-        {/* Hero Section */}
-        <section className="flex flex-col justify-center items-center text-center relative mt-8 mb-16">
-          <div className="glass-panel p-8 md:p-12 rounded-[32px] max-w-3xl mx-auto flex flex-col items-center gap-8 glow-effect">
-            <h1 className="text-4xl md:text-6xl font-extrabold text-on-background bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                Track your impact.<br/>Save the planet.<br/>Powered by AI.
-            </h1>
-            <p className="text-lg text-on-surface-variant max-w-2xl">
-                EcoPulse helps you measure, reduce, and track your carbon footprint with actionable insights and local-first privacy.
-            </p>
-          </div>
-        </section>
+    const parseBold = (str: string) => {
+      const parts = str.split(/\*\*([^*]+)\*\*/g);
+      return parts.map((part, i) => {
+        if (i % 2 === 1) {
+          return <strong key={i} className="text-secondary font-extrabold">{part}</strong>;
+        }
+        return part;
+      });
+    };
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Calculator & Charts */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* Calculator Card */}
-            <section className="glass-card p-6 md:p-8 rounded-2xl glow-effect">
-              <h2 className="text-2xl font-bold mb-6 text-primary">Carbon Calculator</h2>
-              <div className="space-y-6">
-                
-                {wizardStep === 1 && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4">
-                    <h3 className="text-lg font-medium mb-4 text-on-surface">1. Transportation</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-on-surface-variant">Daily Commute (km)</label>
-                        <input 
-                          type="number" 
-                          value={carbonData.transportation.kmPerDay}
-                          onChange={(e) => handleUpdateData('transportation', 'kmPerDay', Number(e.target.value))}
-                          className="w-full bg-surface-container border border-outline-variant rounded-lg p-3 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-on-surface-variant">Vehicle Type</label>
-                        <select 
-                          value={carbonData.transportation.vehicleType}
-                          onChange={(e) => handleUpdateData('transportation', 'vehicleType', e.target.value)}
-                          className="w-full bg-surface-container border border-outline-variant rounded-lg p-3 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          <option value="car">Car (Petrol/Diesel)</option>
-                          <option value="public">Public Transit</option>
-                          <option value="bike">Bicycle</option>
-                          <option value="walking">Walking</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {wizardStep === 2 && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4">
-                    <h3 className="text-lg font-medium mb-4 text-on-surface">2. Home Energy</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-on-surface-variant">Monthly Electricity (kWh)</label>
-                        <input 
-                          type="number" 
-                          value={carbonData.homeEnergy.electricityKwhPerMonth}
-                          onChange={(e) => handleUpdateData('homeEnergy', 'electricityKwhPerMonth', Number(e.target.value))}
-                          className="w-full bg-surface-container border border-outline-variant rounded-lg p-3 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-on-surface-variant">Heating Type</label>
-                        <select 
-                          value={carbonData.homeEnergy.heatingType}
-                          onChange={(e) => handleUpdateData('homeEnergy', 'heatingType', e.target.value)}
-                          className="w-full bg-surface-container border border-outline-variant rounded-lg p-3 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          <option value="gas">Natural Gas</option>
-                          <option value="electric">Electric / Heat Pump</option>
-                          <option value="none">None</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {wizardStep === 3 && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4">
-                    <h3 className="text-lg font-medium mb-4 text-on-surface">3. Lifestyle</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-on-surface-variant">Dietary Preferences</label>
-                        <select 
-                          value={carbonData.diet}
-                          onChange={(e) => handleUpdateData('diet', '', e.target.value)}
-                          className="w-full bg-surface-container border border-outline-variant rounded-lg p-3 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          <option value="meat-heavy">Meat-heavy</option>
-                          <option value="average">Average</option>
-                          <option value="vegetarian">Vegetarian</option>
-                          <option value="vegan">Vegan</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-on-surface-variant">Waste Generation</label>
-                        <select 
-                          value={carbonData.waste}
-                          onChange={(e) => handleUpdateData('waste', '', e.target.value)}
-                          className="w-full bg-surface-container border border-outline-variant rounded-lg p-3 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          <option value="high">High (Lots of packaging)</option>
-                          <option value="average">Average</option>
-                          <option value="low">Low (Zero-waste efforts)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-between pt-6 mt-6 border-t border-outline-variant/30">
-                  <button 
-                    onClick={() => setWizardStep(prev => Math.max(1, prev - 1))}
-                    disabled={wizardStep === 1}
-                    className="px-6 py-2 rounded-lg font-medium text-on-surface hover:bg-surface-container disabled:opacity-30 transition-colors border border-outline-variant"
-                  >
-                    Back
-                  </button>
-                  <button 
-                    onClick={() => {
-                      if (wizardStep < 3) setWizardStep(prev => prev + 1);
-                      else fetchInsights();
-                    }}
-                    className="bg-primary-container text-white font-medium px-6 py-2 rounded-lg transition-transform hover:scale-[1.02] active:scale-95 btn-pulse shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:opacity-50"
-                    disabled={isGettingInsights}
-                  >
-                    {wizardStep === 3 ? (isGettingInsights ? 'Analyzing...' : 'Generate AI Action Plan') : 'Next Step'}
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            {/* Dashboard / Charts */}
-            <section className="glass-card p-6 md:p-8 rounded-2xl glow-effect">
-              <h2 className="text-2xl font-bold mb-6 text-primary">Monthly Footprint Analysis</h2>
-              
-              <div className="flex h-64 items-end space-x-8 px-4 relative border-b border-outline-variant pb-2">
-                {/* User Bar */}
-                <div className="flex flex-col items-center flex-1 group relative">
-                  <div 
-                    className="w-full max-w-[80px] bg-secondary-container rounded-t-md relative transition-all duration-700 ease-out flex items-end justify-center"
-                    style={{ height: `${userBarHeight}%`, minHeight: '10%' }}
-                  >
-                    <span className="text-on-primary-container font-bold absolute -top-8 bg-secondary-fixed px-2 py-1 rounded text-sm shadow-lg whitespace-nowrap">
-                      {userTotal.toFixed(0)} kg
-                    </span>
-                  </div>
-                  <span className="mt-4 font-semibold text-on-surface">You</span>
-                </div>
-
-                {/* Global Bar */}
-                <div className="flex flex-col items-center flex-1 group relative">
-                  <div 
-                    className="w-full max-w-[80px] bg-surface-container-highest rounded-t-md relative transition-all duration-700 ease-out flex items-end justify-center"
-                    style={{ height: `${globalBarHeight}%`, minHeight: '10%' }}
-                  >
-                    <span className="text-on-surface font-bold absolute -top-8 bg-surface-variant border border-outline px-2 py-1 rounded text-sm shadow-lg whitespace-nowrap">
-                      {GLOBAL_AVERAGE_MONTHLY_KG} kg
-                    </span>
-                  </div>
-                  <span className="mt-4 font-semibold text-on-surface-variant">Global Avg</span>
-                </div>
-              </div>
-              
-              <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="bg-surface-container p-3 rounded-lg text-center border border-outline-variant">
-                  <div className="text-on-surface-variant mb-1">Transport</div>
-                  <div className="font-bold text-lg text-primary">{monthlyEmissions.transport.toFixed(0)}</div>
-                </div>
-                <div className="bg-surface-container p-3 rounded-lg text-center border border-outline-variant">
-                  <div className="text-on-surface-variant mb-1">Energy</div>
-                  <div className="font-bold text-lg text-primary">{monthlyEmissions.energy.toFixed(0)}</div>
-                </div>
-                <div className="bg-surface-container p-3 rounded-lg text-center border border-outline-variant">
-                  <div className="text-on-surface-variant mb-1">Diet</div>
-                  <div className="font-bold text-lg text-primary">{monthlyEmissions.diet.toFixed(0)}</div>
-                </div>
-                <div className="bg-surface-container p-3 rounded-lg text-center border border-outline-variant">
-                  <div className="text-on-surface-variant mb-1">Waste</div>
-                  <div className="font-bold text-lg text-primary">{monthlyEmissions.waste.toFixed(0)}</div>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* Right Column: AI Action Planner & Badges */}
-          <div className="lg:col-span-1 space-y-8">
-            <aside className="glass-card p-6 rounded-2xl glow-effect sticky top-24">
-              <h2 className="text-2xl font-bold mb-4 text-primary flex items-center gap-2">
-                <span className="text-2xl">⚡</span> AI Action Planner
+    const lines = text.split('\n');
+    return (
+      <div className="space-y-4 font-body-md text-body-md text-on-surface-variant select-text pr-2 leading-relaxed">
+        {lines.map((line, idx) => {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('###')) {
+            return (
+              <h3 key={idx} className="font-headline-sm text-headline-sm text-primary font-bold mt-5 mb-2.5 border-b border-white/5 pb-2">
+                {trimmed.replace(/^###\s*/, '')}
+              </h3>
+            );
+          }
+          if (trimmed.startsWith('##')) {
+            return (
+              <h2 key={idx} className="font-headline-md text-headline-md text-primary font-bold mt-6 mb-3 border-b border-white/10 pb-2">
+                {trimmed.replace(/^##\s*/, '')}
               </h2>
-              <p className="text-on-surface-variant mb-6 text-sm">Personalized habits generated by Groq's Llama 3.</p>
-              
-              <ul className="space-y-4">
-                {actions.map((action, idx) => (
-                  <li key={action.id || idx} className={`p-4 rounded-xl border transition-all ${action.completed ? 'bg-primary-container/20 border-primary' : 'bg-surface-container border-outline-variant hover:border-primary/50'}`}>
-                    <label className="flex items-start cursor-pointer gap-3">
-                      <div className="mt-1">
-                        <input 
-                          type="checkbox" 
-                          checked={action.completed}
-                          onChange={() => toggleActionCompleted(action.id)}
-                          className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary accent-primary bg-background"
-                        />
-                      </div>
-                      <div>
-                        <h4 className={`font-semibold ${action.completed ? 'line-through text-on-surface-variant' : 'text-on-surface'}`}>
-                          {action.title}
-                        </h4>
-                        <p className={`text-sm mt-1 ${action.completed ? 'text-on-surface-variant opacity-70' : 'text-on-surface-variant'}`}>
-                          {action.description}
-                        </p>
-                        <div className="mt-2 inline-flex items-center text-xs font-bold bg-secondary-container text-on-secondary-container px-2 py-1 rounded">
-                          -{action.co2SavedKg} kg CO2
-                        </div>
-                      </div>
-                    </label>
-                  </li>
-                ))}
-              </ul>
+            );
+          }
+          if (trimmed.startsWith('1.') || trimmed.startsWith('2.') || trimmed.startsWith('3.')) {
+            const content = trimmed.replace(/^\d+\.\s*/, '');
+            return (
+              <div key={idx} className="flex gap-2.5 items-start pl-2 my-2.5">
+                <span className="text-primary font-extrabold shrink-0">{trimmed.match(/^\d+\./)?.[0]}</span>
+                <span className="flex-1 text-on-surface-variant font-medium">{parseBold(content)}</span>
+              </div>
+            );
+          }
+          if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+            const content = trimmed.replace(/^[-*]\s*/, '');
+            return (
+              <div key={idx} className="flex gap-2.5 items-start pl-4 my-2.5">
+                <span className="text-secondary shrink-0">•</span>
+                <span className="flex-1 text-on-surface-variant font-medium">{parseBold(content)}</span>
+              </div>
+            );
+          }
+          if (trimmed === '') {
+            return <div key={idx} className="h-1" />;
+          }
+          return <p key={idx} className="font-medium text-on-surface-variant my-2.5">{parseBold(trimmed)}</p>;
+        })}
+      </div>
+    );
+  };
 
-              {/* Badges Section */}
-              {badges.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-outline-variant/30">
-                  <h3 className="text-lg font-bold mb-4 text-on-surface">Unlocked Badges</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {badges.map(badge => (
-                      <div key={badge.id} className="bg-tertiary-container text-on-tertiary-container px-3 py-1.5 rounded-full text-xs font-bold shadow-sm" title={badge.description}>
-                        🏆 {badge.name}
+  // Prevent hydration mismatch errors by displaying a premium dark-themed loading skeleton
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-[#0e1511] flex flex-col items-center justify-center text-on-surface" role="status" aria-live="polite">
+        <span className="material-symbols-outlined text-primary text-5xl animate-spin">eco</span>
+        <h2 className="mt-4 font-headline-md text-headline-md tracking-wider">EcoPulse Preparing...</h2>
+        <p className="text-on-surface-variant text-body-md mt-2">Initializing Local-First state engine.</p>
+      </div>
+    );
+  }
+
+  // Welcome / Landing Card Screen
+  if (welcome) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+        <ShaderCanvas />
+        <main className="glass-panel p-8 md:p-14 rounded-[32px] max-w-3xl w-full text-center flex flex-col items-center gap-8 glow-effect">
+          <div className="flex items-center gap-3 text-primary">
+            <span className="material-symbols-outlined text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+            <span className="font-headline-md text-headline-md font-extrabold tracking-wider text-primary">EcoPulse</span>
+          </div>
+          <h1 className="font-headline-xl text-headline-xl font-black leading-tight text-on-background bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+            Track your impact.<br />Save the planet.<br />Powered by AI.
+          </h1>
+          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+            Measure your ecological footprint, lock in green habits, and unlock custom gamified badges. Entirely private and local-first.
+          </p>
+          <button 
+            type="button"
+            onClick={() => setWelcome(false)}
+            className="bg-primary text-slate-950 font-bold px-10 py-5 rounded-full transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-[0_0_30px_rgba(78,222,163,0.4)] min-h-[48px] min-w-[200px] text-label-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+          >
+            Start My Eco-Journey
+          </button>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#0e1511] relative text-on-surface font-sans">
+      <ShaderCanvas />
+
+      {/* Navigation Drawer (Desktop Sidebar) */}
+      <aside className="hidden md:flex flex-col h-full w-80 fixed left-0 top-0 z-[60] bg-[#161d19]/85 backdrop-blur-[40px] border-r border-primary/20 shadow-2xl py-8 justify-between">
+        <div className="px-6 pb-6 border-b border-white/10">
+          <h1 className="font-headline-md text-headline-md text-primary flex items-center gap-2 font-bold mb-6">
+            <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+            EcoPulse
+          </h1>
+          
+          {/* Editable User Profile Info */}
+          {isEditingProfile ? (
+            <form onSubmit={saveProfile} className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/10">
+              <div>
+                <label htmlFor="profile-name" className="text-xs uppercase font-bold text-on-surface-variant block mb-1">Name</label>
+                <input 
+                  id="profile-name"
+                  type="text" 
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  className="w-full bg-[#0e1511] border border-white/15 rounded-lg px-3 py-2 text-body-md text-on-surface focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="profile-title" className="text-xs uppercase font-bold text-on-surface-variant block mb-1">Title</label>
+                <input 
+                  id="profile-title"
+                  type="text" 
+                  value={profileTitle}
+                  onChange={(e) => setProfileTitle(e.target.value)}
+                  className="w-full bg-[#0e1511] border border-white/15 rounded-lg px-3 py-2 text-body-md text-on-surface focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div className="flex gap-2.5 pt-1">
+                <button type="submit" className="bg-primary text-slate-950 px-4 py-2 rounded-lg text-label-sm font-bold hover:opacity-90 transition-all">Save</button>
+                <button type="button" onClick={() => setIsEditingProfile(false)} className="bg-white/5 text-on-surface border border-white/10 px-4 py-2 rounded-lg text-label-sm hover:bg-white/10 transition-all">Cancel</button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex items-center gap-4 group p-1.5 hover:bg-white/5 rounded-xl transition-all">
+              <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+                <span className="material-symbols-outlined text-primary text-3xl">person</span>
+              </div>
+              <div className="flex-1">
+                <h2 className="font-label-md text-label-md text-on-surface font-bold flex items-center gap-2">
+                  {state.userProfile.name}
+                  <button 
+                    onClick={startEditProfile} 
+                    type="button"
+                    className="material-symbols-outlined text-on-surface-variant hover:text-primary text-base focus:outline-none transition-colors"
+                    aria-label="Edit Profile"
+                  >
+                    edit
+                  </button>
+                </h2>
+                <p className="font-label-sm text-xs text-on-surface-variant font-medium mt-0.5">{state.userProfile.title}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <nav className="flex-1 pt-6 space-y-2">
+          {[
+            { id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
+            { id: 'calculator', icon: 'calculate', label: 'Calculator' },
+            { id: 'achievements', icon: 'military_tech', label: 'Achievements' },
+            { id: 'planner', icon: 'psychology', label: 'AI Insights' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full text-left flex items-center gap-4 px-6 py-4 font-label-md text-label-md transition-all duration-200 border-l-4 ${
+                activeTab === tab.id
+                  ? 'bg-primary/15 text-primary border-primary font-bold'
+                  : 'text-on-surface-variant hover:bg-white/5 hover:text-secondary border-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined text-2xl">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="px-6 pt-4 border-t border-white/10 space-y-4">
+          <div className="font-label-md text-body-md flex items-center justify-between font-semibold">
+            <span className="text-on-surface-variant">Streak status</span>
+            <span className="text-primary font-bold">🔥 {state.streak} Days</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button 
+              type="button"
+              onClick={handleExport}
+              className="btn-secondary w-full text-center text-label-sm py-2.5 rounded-lg font-bold focus:outline-none focus:ring-2 focus:ring-secondary"
+            >
+              Export
+            </button>
+            <button 
+              type="button"
+              onClick={handleReset}
+              className="bg-error/10 border border-error/30 text-error hover:bg-error/20 w-full text-center text-label-sm py-2.5 rounded-lg font-bold focus:outline-none focus:ring-2 focus:ring-error"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 md:ml-80 pb-24 md:pb-8 flex flex-col min-h-screen">
+        
+        {/* Top Header Bar */}
+        <header className="z-50 bg-[#0e1511]/60 backdrop-blur-[20px] border-b border-white/10 flex justify-between items-center w-full px-6 py-5 sticky top-0">
+          <div className="flex items-center gap-2 md:hidden">
+            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+            <span className="font-headline-sm text-headline-sm font-bold text-primary">EcoPulse</span>
+          </div>
+
+          {/* Predictive AI Ticker */}
+          <div className="flex-1 md:ml-0 ml-4 max-w-2xl mx-auto glass-panel rounded-full px-6 py-2.5 flex items-center gap-3 text-sm">
+            <span className="material-symbols-outlined text-secondary text-lg animate-pulse">auto_awesome</span>
+            <div className="relative h-6 overflow-hidden flex-1" aria-label="Real-time environmental notifications">
+              <div className="font-label-sm text-xs text-on-surface-variant flex items-center">
+                <span className="text-primary mr-2 font-bold">[AI Pulse]:</span>
+                {state.streak > 0 
+                  ? `Maintain your ${state.streak}-day streak! Grid shifts 80% renewable at 14:00 today.` 
+                  : 'Log metrics to generate a customized, zero-emission lifestyle pathway.'
+                }
+              </div>
+            </div>
+          </div>
+
+          {/* Functional Notification Center */}
+          <div className="relative ml-4">
+            <button 
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              type="button"
+              className={`w-11 h-11 rounded-full glass-panel flex items-center justify-center transition-all focus:outline-none ${
+                notificationsOpen ? 'text-primary border-primary' : 'text-on-surface-variant hover:text-secondary'
+              }`}
+              aria-label="Toggle notifications"
+            >
+              <span className="material-symbols-outlined text-xl">notifications</span>
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full animate-ping" />
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full" />
+            </button>
+
+            {notificationsOpen && (
+              <div className="absolute right-0 mt-3 w-80 bg-[#161d19]/95 backdrop-blur-xl border border-primary/20 rounded-xl shadow-2xl p-5 z-[80] animate-in fade-in duration-200">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-primary mb-3">Live Eco Alerts</h4>
+                <div className="space-y-3">
+                  {notifications.map(n => (
+                    <div key={n.id} className="text-body-md text-on-surface-variant leading-relaxed pb-2 border-b border-white/5 last:border-0 flex gap-2">
+                      <span className="text-primary">🌿</span>
+                      <span>{n.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Dashboard Pages */}
+        <div className="flex-1 w-full max-w-[1280px] mx-auto px-6 py-6 space-y-6">
+          
+          {/* Main Dashboard Layout */}
+          {activeTab === 'dashboard' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-300 items-start">
+              
+              {/* Dynamic Metrics and Charts */}
+              <div className="lg:col-span-2 space-y-6">
+                <EmissionsChart />
+                <BadgeGrid />
+              </div>
+
+              {/* Shareable Ticket and Actions Planner */}
+              <div className="lg:col-span-1 space-y-6">
+                
+                {/* Shareable Ticket Card */}
+                <div className="glass-panel rounded-xl p-6 flex flex-col justify-between relative overflow-hidden group border border-white/10">
+                  <div className="absolute -right-10 -top-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl"></div>
+                  <div>
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <span className="font-label-sm text-xs text-secondary uppercase tracking-wider font-bold">Monthly Impact</span>
+                        <h3 className="font-headline-md text-headline-md text-on-surface mt-1 font-extrabold">{emissions.total} kg CO₂</h3>
                       </div>
-                    ))}
+                      <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>energy_savings_leaf</span>
+                    </div>
+                    
+                    <div className="space-y-4 border-y border-white/10 py-4 my-4">
+                      <div className="flex justify-between text-body-md">
+                        <span className="text-on-surface-variant">Emissions Status</span>
+                        <span className={statusColor}>{statusLabel}</span>
+                      </div>
+                      <div className="flex justify-between text-body-md">
+                        <span className="text-on-surface-variant">Tree Compensation</span>
+                        <span className="text-on-surface font-semibold">{treesEquivalent} trees / month</span>
+                      </div>
+                      <div className="flex justify-between text-body-md">
+                        <span className="text-on-surface-variant">Check-in Streak</span>
+                        <span className="text-primary font-bold">🔥 {state.streak} Days</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    type="button" 
+                    onClick={() => setShareModalOpen(true)}
+                    className="btn-secondary w-full font-label-md text-label-md px-4 py-3.5 rounded-lg flex items-center justify-center gap-2 mt-4 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <span className="material-symbols-outlined text-lg">share</span>
+                    Share Progress
+                  </button>
+                </div>
+
+                {/* AI Text Insights Preview Card */}
+                <div className="glass-panel p-6 rounded-xl flex flex-col border border-white/10">
+                  <div className="flex justify-between items-center mb-3">
+                    <h2 className="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2 font-bold">
+                      <span className="material-symbols-outlined text-primary text-xl">auto_awesome</span>
+                      Predictive Insights
+                    </h2>
+                    {state.aiInsights && (
+                      <button 
+                        onClick={handleCopyInsights}
+                        type="button"
+                        className="text-xs text-secondary hover:text-primary flex items-center gap-1 font-semibold focus:outline-none"
+                        aria-label="Copy AI Insights Report"
+                      >
+                        <span className="material-symbols-outlined text-sm">{copiedInsights ? 'check' : 'content_copy'}</span>
+                        {copiedInsights ? 'Copied!' : 'Copy'}
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-64 overflow-y-auto bg-black/25 p-4 rounded-xl border border-white/5 scrollbar-thin scrollbar-thumb-white/10">
+                    {renderMarkdown(state.aiInsights)}
                   </div>
                 </div>
-              )}
-            </aside>
-          </div>
+
+                {/* Custom Habit Adder */}
+                <div className="glass-panel p-6 rounded-xl flex flex-col border border-white/10">
+                  <h2 className="font-headline-sm text-headline-sm text-on-surface mb-2 flex items-center gap-2 font-bold">
+                    <span className="material-symbols-outlined text-secondary text-xl">checklist</span>
+                    Custom Habit Tracker
+                  </h2>
+                  <p className="text-xs text-on-surface-variant mb-4">Add your own eco-friendly habits and check them off to build your streak.</p>
+                  
+                  {/* Habit Adder Form */}
+                  <form onSubmit={handleAddCustomHabit} className="bg-white/5 border border-white/10 p-4 rounded-xl mb-4 space-y-3">
+                    <div className="text-xs font-bold text-primary uppercase tracking-wider">Add Custom Habit</div>
+                    <input 
+                      type="text"
+                      placeholder="Habit title (e.g. Composting)"
+                      value={newHabitTitle}
+                      onChange={(e) => setNewHabitTitle(e.target.value)}
+                      className="w-full bg-[#0e1511] border border-white/15 rounded-lg px-3 py-2 text-body-md text-on-surface focus:outline-none focus:border-primary"
+                      required
+                    />
+                    <input 
+                      type="text"
+                      placeholder="Habit description (e.g. compost food scraps)"
+                      value={newHabitDesc}
+                      onChange={(e) => setNewHabitDesc(e.target.value)}
+                      className="w-full bg-[#0e1511] border border-white/15 rounded-lg px-3 py-2 text-body-md text-on-surface focus:outline-none focus:border-primary"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-on-surface-variant">
+                        <span>Carbon Saved:</span>
+                        <span className="text-primary font-bold">{newHabitCo2} kg CO₂</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="range"
+                          min="1"
+                          max="30"
+                          value={newHabitCo2}
+                          onChange={(e) => setNewHabitCo2(Number(e.target.value))}
+                          className="accent-primary h-2 bg-surface-bright rounded-lg flex-1 cursor-pointer"
+                        />
+                        <button 
+                          type="submit"
+                          className="bg-primary text-slate-950 px-4 py-1.5 rounded-lg font-bold text-xs hover:opacity-90 shrink-0 transition-opacity"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+
+                  {state.actions.length === 0 ? (
+                    <div className="text-center py-6 text-on-surface-variant/60 text-xs">
+                      No custom habits added yet. Create custom habits above.
+                    </div>
+                  ) : (
+                    <ul className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      {state.actions.map(action => (
+                        <li 
+                          key={action.id} 
+                          className={`p-4 rounded-xl border transition-all duration-300 relative group/item ${
+                            action.completed 
+                              ? 'bg-primary/5 border-primary/20 opacity-70' 
+                              : 'bg-white/5 border-white/10 hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="absolute top-3 right-3 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => handleDeleteHabit(action.id)}
+                              type="button"
+                              className="material-symbols-outlined text-on-surface-variant hover:text-error text-lg focus:outline-none transition-colors"
+                              aria-label={`Delete habit ${action.title}`}
+                            >
+                              delete
+                            </button>
+                          </div>
+                          
+                          <label className="flex items-start cursor-pointer gap-3.5 select-none mr-6">
+                            <div className="mt-1">
+                              <input 
+                                type="checkbox" 
+                                checked={action.completed}
+                                onChange={() => {
+                                  dispatch({ type: 'TOGGLE_ACTION', payload: action.id });
+                                  if (!action.completed) {
+                                    dispatch({ type: 'SET_STREAK', payload: state.streak + 1 });
+                                  } else {
+                                    dispatch({ type: 'SET_STREAK', payload: Math.max(0, state.streak - 1) });
+                                  }
+                                }}
+                                className="w-5 h-5 rounded border-white/20 text-primary focus:ring-primary accent-primary bg-[#0e1511] cursor-pointer"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className={`text-body-md font-bold ${action.completed ? 'line-through text-on-surface-variant' : 'text-on-surface'}`}>
+                                {action.title}
+                              </h4>
+                              <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed font-medium">
+                                {action.description}
+                              </p>
+                              <div className="mt-2 inline-flex items-center text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                Save ~{action.co2SavedKg} kg CO₂
+                              </div>
+                            </div>
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* Calculator Step Wizard */}
+          {activeTab === 'calculator' && (
+            <div className="max-w-3xl mx-auto animate-in fade-in duration-300">
+              <CarbonCalculator />
+            </div>
+          )}
+
+          {/* Achievements Grid View */}
+          {activeTab === 'achievements' && (
+            <div className="max-w-4xl mx-auto animate-in fade-in duration-300">
+              <BadgeGrid />
+            </div>
+          )}
+
+          {/* AI Action Planner Detail (Now displays fully-rendered Markdown insights) */}
+          {activeTab === 'planner' && (
+            <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
+              <div className="glass-panel p-8 rounded-2xl flex flex-col border border-white/10 relative">
+                
+                <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-4">
+                  <div>
+                    <h2 className="font-headline-md text-headline-md text-primary font-bold">AI Carbon Insights</h2>
+                    <p className="text-body-md text-on-surface-variant mt-1">Personalized carbon trajectory analysis and lifestyle optimization roadmap modeled by Groq AI.</p>
+                  </div>
+                  {state.aiInsights && (
+                    <button 
+                      onClick={handleCopyInsights}
+                      type="button"
+                      className="btn-secondary px-4 py-2.5 rounded-lg flex items-center gap-2 font-bold text-label-sm focus:outline-none"
+                      aria-label="Copy full report"
+                    >
+                      <span className="material-symbols-outlined text-lg">{copiedInsights ? 'check' : 'content_copy'}</span>
+                      {copiedInsights ? 'Report Copied!' : 'Copy Report'}
+                    </button>
+                  )}
+                </div>
+                
+                <div className="bg-black/20 border border-white/5 rounded-2xl p-6 min-h-[300px] overflow-y-auto leading-relaxed scrollbar-thin">
+                  {renderMarkdown(state.aiInsights)}
+                </div>
+
+              </div>
+            </div>
+          )}
 
         </div>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 rounded-t-xl bg-[#161d19]/80 backdrop-blur-[30px] border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex justify-around items-center h-16 px-4">
+          {[
+            { id: 'dashboard', icon: 'home_app_logo', label: 'Home' },
+            { id: 'calculator', icon: 'calculate', label: 'Calculator' },
+            { id: 'achievements', icon: 'military_tech', label: 'Earn' },
+            { id: 'planner', icon: 'lightbulb', label: 'Insights' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex flex-col items-center justify-center transition-all ${
+                activeTab === tab.id
+                  ? 'text-primary bg-primary/10 rounded-full px-4 py-1'
+                  : 'text-on-surface-variant opacity-75'
+              }`}
+            >
+              <span className="material-symbols-outlined">{tab.icon}</span>
+              <span className="text-[10px] font-bold mt-0.5">{tab.label}</span>
+            </button>
+          ))}
+        </nav>
       </main>
+
+      {/* Share Social Progress Modal */}
+      <ShareModal 
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        totalEmissions={emissions.total}
+        streak={state.streak}
+        trees={treesEquivalent}
+      />
     </div>
   );
 }

@@ -3,33 +3,140 @@
 @tailwind utilities;
 
 body {
-  background-color: theme('colors.background');
-  color: theme('colors.on-background');
+  background-color: #0e1511;
+  color: #d4e4fa;
+  font-family: 'Plus Jakarta Sans', var(--font-geist-sans), sans-serif;
+}
+
+/* Typography Scaling - Fixing tiny fonts */
+.font-headline-xl {
+  font-family: 'Plus Jakarta Sans', var(--font-geist-sans), sans-serif;
+  font-size: 2.75rem !important; /* ~44px */
+  font-weight: 800;
+  line-height: 1.2;
+}
+.text-headline-xl {
+  font-size: 2.75rem !important;
+  line-height: 1.2;
+}
+
+.font-headline-lg {
+  font-family: 'Plus Jakarta Sans', var(--font-geist-sans), sans-serif;
+  font-size: 2rem !important; /* ~32px */
+  font-weight: 700;
+  line-height: 1.25;
+}
+.text-headline-lg {
+  font-size: 2rem !important;
+  line-height: 1.25;
+}
+
+.font-headline-md {
+  font-family: 'Plus Jakarta Sans', var(--font-geist-sans), sans-serif;
+  font-size: 1.5rem !important; /* ~24px */
+  font-weight: 700;
+  line-height: 1.3;
+}
+.text-headline-md {
+  font-size: 1.5rem !important;
+  line-height: 1.3;
+}
+
+.font-headline-sm {
+  font-family: 'Plus Jakarta Sans', var(--font-geist-sans), sans-serif;
+  font-size: 1.25rem !important; /* ~20px */
+  font-weight: 600;
+  line-height: 1.3;
+}
+.text-headline-sm {
+  font-size: 1.25rem !important;
+  line-height: 1.3;
+}
+
+.font-body-lg {
+  font-size: 1.125rem !important; /* ~18px */
+  line-height: 1.6;
+}
+.text-body-lg {
+  font-size: 1.125rem !important;
+  line-height: 1.6;
+}
+
+.font-body-md {
+  font-size: 1rem !important; /* 16px */
+  line-height: 1.5;
+}
+.text-body-md {
+  font-size: 1rem !important;
+  line-height: 1.5;
+}
+
+.font-label-lg {
+  font-size: 1.125rem !important; /* 18px */
+  font-weight: 600;
+  line-height: 1.5;
+}
+.text-label-lg {
+  font-size: 1.125rem !important;
+  line-height: 1.5;
+}
+
+.font-label-md {
+  font-size: 1rem !important; /* 16px */
+  font-weight: 500;
+  line-height: 1.4;
+}
+.text-label-md {
+  font-size: 1rem !important;
+  line-height: 1.4;
+}
+
+.font-label-sm {
+  font-size: 0.875rem !important; /* 14px */
+  font-weight: 500;
+  line-height: 1.35;
+}
+.text-label-sm {
+  font-size: 0.875rem !important;
+  line-height: 1.35;
 }
 
 @layer utilities {
   .glass-card {
-      background: rgba(30, 41, 59, 0.6);
+      background: rgba(22, 29, 25, 0.7);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(78, 222, 163, 0.15);
   }
   .glass-panel {
-      background: rgba(30, 41, 59, 0.8);
+      background: rgba(22, 29, 25, 0.85);
       backdrop-filter: blur(40px);
       -webkit-backdrop-filter: blur(40px);
-      border: 1px solid rgba(45, 212, 191, 0.3);
+      border: 1px solid rgba(78, 222, 163, 0.25);
   }
   .glow-effect {
-      box-shadow: 0 0 30px rgba(45, 212, 191, 0.15);
+      box-shadow: 0 0 35px rgba(78, 222, 163, 0.12);
   }
-  .btn-pulse {
-      animation: pulse-glow 2s infinite;
+  .btn-primary {
+      background-color: #4edea3;
+      color: #020a06;
+      font-weight: 700;
+      transition: all 0.2s ease-in-out;
   }
-}
-
-@keyframes pulse-glow {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  .btn-primary:hover {
+      background-color: #38cfa0;
+      transform: translateY(-1px);
+  }
+  .btn-secondary {
+      background-color: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #d4e4fa;
+      font-weight: 600;
+      transition: all 0.2s ease-in-out;
+  }
+  .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.12);
+      border-color: rgba(78, 222, 163, 0.4);
+      transform: translateY(-1px);
+  }
 }
